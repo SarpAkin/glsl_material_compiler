@@ -1,0 +1,43 @@
+{
+    "pipelines": [
+      {
+        "name": "BasicShader",
+        "renderpass": "MainRenderPass",
+        "vertex_input": "BasicVertexInput",
+        "depth_test": true,
+        "depth_write": true,
+        "polygon_mode": "FILL",
+        "topology_mode": "TRIANGLE_LIST",
+        "cull_mode": "BACK",
+        "depth_op": "LESS_OR_EQUAL",
+        "compiler_definitions": {
+          "SHADOW_PASS": "",
+          "NUM_DESCRIPTORS": "1"
+        },
+        "shader_files": [
+          "1.vert",
+          "1.frag"
+        ]
+      },
+      {
+        "name": "DepthShader",
+        "renderpass": "DepthRenderPass",
+        "vertex_input": "DepthVertexInput",
+        "depth_test": true,
+        "depth_write": true,
+        "polygon_mode": "FILL",
+        "topology_mode": "TRIANGLE_LIST",
+        "cull_mode": "BACK",
+        "depth_op": "LESS_OR_EQUAL",
+        "compiler_definitions": {
+          "SHADOW_PASS": "true",
+          "NUM_DESCRIPTORS": "1"
+        },
+        "shader_files": [
+          "shaders/1.vert",
+          "shaders/1.frag"
+        ]
+      }
+    ]
+  }
+  
