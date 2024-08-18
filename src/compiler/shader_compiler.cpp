@@ -5,10 +5,14 @@
 #include <shaderc/shaderc.hpp>
 #include <string>
 
+
+
 #include <arena_alloc.hpp>
 
 using vke::ArenaAllocator;
 namespace fs = std::filesystem;
+
+#include <vulkan/vulkan.h>
 
 std::string_view read_file(vke::ArenaAllocator* arena, const char* name) {
     std::ifstream file(name, std::ios::ate);
@@ -17,7 +21,7 @@ std::string_view read_file(vke::ArenaAllocator* arena, const char* name) {
 
         snprintf(error, sizeof(error), "failed to open file: %s", name);
 
-        throw std::runtime_error("failed to open file");
+        throw std::runtime_error(error);
     }
     size_t filesize = static_cast<size_t>(file.tellg());
     char* data      = arena->alloc<char>(filesize + 1);
@@ -26,6 +30,8 @@ std::string_view read_file(vke::ArenaAllocator* arena, const char* name) {
     file.seekg(0);
     file.read(reinterpret_cast<char*>(data), filesize);
     return std::string_view(data, filesize);
+
+    
 }
 
 class ShadercIncluder : public shaderc::CompileOptions::IncluderInterface {
@@ -58,6 +64,57 @@ public:
     }
 };
 
+
+void add_shader_kind_macro_def(shaderc::CompileOptions& options, shaderc_shader_kind kind) {
+        switch (kind) {
+    case shaderc_vertex_shader:
+        options.AddMacroDefinition("VERTEX_SHADER");
+        break;
+    case shaderc_fragment_shader:
+        options.AddMacroDefinition("FRAGMENT_SHADER");
+        break;
+    case shaderc_compute_shader:
+        options.AddMacroDefinition("COMPUTE_SHADER");
+        break;
+    case shaderc_geometry_shader:
+        options.AddMacroDefinition("GEOMETRY_SHADER");
+        break;
+    case shaderc_tess_control_shader:
+        options.AddMacroDefinition("TESS_CONTROL_SHADER");
+        break;
+    case shaderc_tess_evaluation_shader:
+        options.AddMacroDefinition("TESS_EVALUATION_SHADER");
+        break;
+    case shaderc_task_shader:
+        options.AddMacroDefinition("TASK_SHADER");
+        break;
+    case shaderc_mesh_shader:
+        options.AddMacroDefinition("MESH_SHADER");
+        break;
+    case shaderc_raygen_shader:
+        options.AddMacroDefinition("RAYGEN_SHADER");
+        break;
+    case shaderc_anyhit_shader:
+        options.AddMacroDefinition("ANY_HIT_SHADER");
+        break;
+    case shaderc_closesthit_shader:
+        options.AddMacroDefinition("CLOSEST_HIT_SHADER");
+        break;
+    case shaderc_miss_shader:
+        options.AddMacroDefinition("MISS_SHADER");
+        break;
+    case shaderc_intersection_shader:
+        options.AddMacroDefinition("INTERSECTION_SHADER");
+        break;
+    case shaderc_callable_shader:
+        options.AddMacroDefinition("CALLABLE_SHADER");
+        break;
+
+    default:
+        break;
+    }
+}
+
 // Function to compile GLSL shader
 shaderc::SpvCompilationResult compileGLSL(const std::string& file_path, shaderc_shader_kind kind = shaderc_glsl_infer_from_source) {
     ArenaAllocator arena;
@@ -69,6 +126,8 @@ shaderc::SpvCompilationResult compileGLSL(const std::string& file_path, shaderc_
 
     // options.SetOptimizationLevel(shaderc_optimization_level_performance);
     options.SetIncluder(std::make_unique<ShadercIncluder>(&arena));
+
+    add_shader_kind_macro_def(options, kind);
 
     auto source = read_file(&arena, file_path.c_str());
 
@@ -105,10 +164,12 @@ std::vector<uint32_t> compile_glsl(const std::string& file_path, const std::vect
     // options.SetOptimizationLevel(shaderc_optimization_level_performance);
     options.SetIncluder(std::make_unique<ShadercIncluder>(&arena));
 
+    options.SetGenerateDebugInfo();
+
     auto source = read_file(&arena, file_path.c_str());
 
-    for(auto& [name,definition] : flags){
-        options.AddMacroDefinition(name,definition);
+    for (auto& [name, definition] : flags) {
+        options.AddMacroDefinition(name, definition);
     }
 
     shaderc::SpvCompilationResult result = compiler.CompileGlslToSpv(source.begin(), source.size(), inferShaderType(file_path), file_path.c_str(), "main", options);
